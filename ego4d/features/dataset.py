@@ -1,7 +1,8 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates. All Rights Reserved.
 
 from fractions import Fraction
-from typing import Any, List
+from typing import List, Any
+from PIL import Image
 
 import torch
 from ego4d.features.config import FeatureExtractConfig, get_transform, Video
@@ -115,8 +116,12 @@ def create_dset(
         backpad_last=True,
     )
 
+<<<<<<< HEAD
     transform = Compose(
         [
+=======
+    transform = Compose([
+>>>>>>> d58f337 (crop by half for stereoscopic)
             CropIfStereo(),
             get_transform(config),
         ]
