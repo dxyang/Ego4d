@@ -12,6 +12,8 @@ import hydra
 import pandas as pd
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
+from torchvision.transforms import Compose, Lambda
+from torchaudio.transforms import Resample
 
 
 @dataclass
@@ -25,12 +27,19 @@ class Video:
     frame_count: int
     w: int
     h: int
+    has_audio: bool
     is_stereo: bool = False
 
     @property
     def dim(self) -> int:
         return (self.w * self.h) / (2 if self.is_stereo else 1)
 
+
+@dataclass
+class NormalizationConfig:
+    normalize_audio: bool = False
+    resample_audio_rate: int = 16000
+    resampling_method: str = "sinc_interpolation"
 
 
 @dataclass
@@ -59,6 +68,8 @@ class InputOutputConfig:
         "/checkpoint/miguelmartin/ego4d_track2_features/full_scale/v1_1/action_features"
     )
 
+    exclude_no_audio: bool = False
+
 
 @dataclass
 class InferenceConfig:
@@ -78,6 +89,7 @@ class InferenceConfig:
     stride: int = 16
     include_audio: bool = False
     include_video: bool = True
+    norm_config: NormalizationConfig = NormalizationConfig()
 
 
 @dataclass
@@ -151,7 +163,7 @@ def _uids(config: InputOutputConfig) -> List[str]:
         uids = [uid for uid in uids if uid not in completed_uids]
 
     assert uids is not None, "`uids` is None"
-    assert len(uids) > 0, "`len(uids)` is 0"
+    assert len(uids) >= 0, "`len(uids)` is 0"
     return uids
 
 
@@ -166,6 +178,10 @@ def _uid_to_info(config: InputOutputConfig) -> Dict[str, int]:
             "num_frames": row.canonical_num_frames,
             "w": row.canonical_display_width,
             "h": row.canonical_display_height,
+            "has_audio": not (
+                pd.isnull(row.canonical_audio_start_sec) and
+                pd.isnull(row.canonical_audio_duration_sec)
+            )
         }
         for row in manifest_df.itertuples()
     }
@@ -180,18 +196,23 @@ def _videos(config: InputOutputConfig, unfiltered: bool = False) -> List[Video]:
     uids = _uids(config) if not unfiltered else _unfiltered_uids(config)
     uid_to_info = _uid_to_info(config)
     uids_to_is_stereo = _uid_to_is_stereo(config)
-    return [
+    videos = [
         Video(
             uid=uid,
             path=_path_for(config, uid),
             frame_count=uid_to_info[uid]["num_frames"],
             w=uid_to_info[uid]["w"],
             h=uid_to_info[uid]["h"],
+            has_audio=uid_to_info[uid]["has_audio"],
             is_stereo=uids_to_is_stereo[uid],
         )
         for uid in uids
         if uid in uid_to_info
     ]
+    if config.exclude_no_audio:
+        return [v for v in videos if v.has_audio]
+
+    return videos
 
 
 def get_videos(config: FeatureExtractConfig) -> Tuple[List[Video], List[Video]]:
@@ -207,10 +228,22 @@ def get_videos(config: FeatureExtractConfig) -> Tuple[List[Video], List[Video]]:
 
 
 def get_transform(config: FeatureExtractConfig) -> Any:
-    return get_model_module(config).get_transform(
-        config.inference_config,
-        config.model_config,
-    )
+    ic = config.inference_config
+    nc = ic.norm_config
+    model_transform = get_model_module(config).get_transform(ic, config.model_config)
+    transforms = []
+    if hasattr(config, "norm_config") and config.norm_config.normalize_audio:
+        print(f"Normalizing with: {config.norm_config}")
+        def resample_audio(x):
+            return Resample(
+                orig_freq=x["audio_sample_rate"],
+                new_freq=nc.resample_audio_rate,
+                resampling_method=nc.resampling_method,
+            )
+        transforms += Lambda(resample_audio),
+
+    transforms += [model_transform]
+    return Compose(transforms)
 
 
 def load_model(config: FeatureExtractConfig, patch_final_layer: bool = True) -> Any:
