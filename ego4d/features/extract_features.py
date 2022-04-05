@@ -113,8 +113,11 @@ def _extract_features(
 
         with torch.no_grad():
             t1 = time.time()
-            fv = model(x).detach().cpu()
+            fv = model(x)
+            if isinstance(fv, torch.Tensor):
+                fv = fv.detach().cpu()
             t2 = time.time()
+
             forward_pass_time = t2 - t1
 
             yield ExtractedFeature(
@@ -185,15 +188,18 @@ def extract_features(
     ):
         if batch_size == 0:
             key = ef.video_uid
-            ef.feature = ef.feature.cpu().squeeze()
+            if isinstance(ef.feature, torch.Tensor):
+                ef.feature = ef.feature.cpu().squeeze()
             fvs[key].append(ef)
         else:
-            assert len(ef.video_uid) == len(ef.feature)
-            assert len(ef.video_uid) == len(ef.clip_index)
+            if ef.feature is not None and isinstance(ef.feature, torch.Tensor):
+                assert len(ef.video_uid) == len(ef.feature)
+                assert len(ef.video_uid) == len(ef.clip_index)
 
             for i in range(len(ef.video_uid)):
                 key = ef.video_uid[i]
-                ef.feature = ef.feature.cpu().squeeze()
+                if isinstance(ef.feature, torch.Tensor):
+                    ef.feature[i] = ef.feature[i].cpu().squeeze()
                 fvs[key].append(ef)
 
         time_to_load.append(ef.time_to_load)
@@ -211,6 +217,16 @@ def extract_features(
                 result[k] = torch.stack([x.feature for x in efs]).cpu().detach()
             else:
                 result[k] = torch.concat([x.feature for x in efs], dim=1).cpu().detach().squeeze()
+        else:
+            result[k] = [
+                {
+                    "start_time_sec": x.start_time_sec,
+                    "end_time_sec": x.end_time_sec,
+                    "feature": x.feature,
+                }
+                for x in efs
+                if x.feature is not None
+            ]
 
         clip = uid_to_video_clips[k]
         expected_fvs = num_fvs(clip, config.inference_config)
