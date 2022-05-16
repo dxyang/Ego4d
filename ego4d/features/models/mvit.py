@@ -8,7 +8,6 @@ from pytorchvideo.models.hub.vision_transformers import mvit_base_16, mvit_base_
 from pytorchvideo.transforms import (
     ApplyTransformToKey,
     ShortSideScale,
-    UniformTemporalSubsample,
 )
 from torch.nn import Identity, Module
 from torchvision.transforms import Compose, Lambda
@@ -52,7 +51,6 @@ def load_model(
 
 def get_transform(inference_config: InferenceConfig, config: ModelConfig):
     transforms = [
-        UniformTemporalSubsample(inference_config.frame_window),
         Lambda(lambda x: x / 255.0),
         NormalizeVideo(config.mean, config.std),
         ShortSideScale(size=config.side_size),
