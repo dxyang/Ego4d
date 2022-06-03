@@ -13,6 +13,8 @@ from torch.nn import Identity, Module
 from torchvision.transforms import Compose, Lambda
 from torchvision.transforms._transforms_video import CenterCropVideo, NormalizeVideo
 
+from omnivore.transforms import SpatialCrop
+
 
 @dataclass
 class ModelConfig(BaseModelConfig):
@@ -32,6 +34,10 @@ class WrapModel(Module):
 
     def forward(self, x) -> torch.Tensor:
         return self.model(x, input_type=self.input_type)
+        # assert x.shape[0] == 1, "multi crop"
+        # ret = self.model(x.squeeze(0))
+        # return ret.unsqueeze(0)
+        # ret = torch.stack([self.model(xx, input_type=self.input_type) for xx in x])
 
 
 def load_model(
@@ -60,6 +66,9 @@ def get_transform(inference_config: InferenceConfig, config: ModelConfig):
             NormalizeVideo(config.mean, config.std),
             ShortSideScale(size=config.side_size),
             CenterCropVideo(config.crop_size),
+            #Lambda(lambda x: [x]),  # to list
+            #SpatialCrop(crop_size=config.crop_size, num_crops=3),
+            #Lambda(lambda x: torch.stack(x)),
         ]
     else:
         assert inference_config.frame_window == 1
