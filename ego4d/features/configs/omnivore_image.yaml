@@ -34,7 +34,7 @@ schedule_config:
 model_config:
   model_name: "omnivore_swinL_imagenet21k"
   input_type: "image"
-  side_size: 256
+  side_size: 224
   crop_size: 224
   mean:
   - 0.485

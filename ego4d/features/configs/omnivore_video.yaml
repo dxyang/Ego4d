@@ -6,8 +6,8 @@ io:
   ego4d_download_dir: /checkpoint/miguelmartin/ego4d/
   uid_list: null
   video_limit: -1
-  out_path: /checkpoint/miguelmartin/ego4d_track2_features/full_scale/omnivore_video
-  debug_path: /checkpoint/miguelmartin/ego4d_track2_features/full_scale/omnivore_video_debug
+  out_path: /checkpoint/miguelmartin/ego4d_track2_features/full_scale/omnivore_video_swinL
+  debug_path: /checkpoint/miguelmartin/ego4d_track2_features/full_scale/omnivore_video_swinL_debug
   debug_mode: false
 inference_config:
   device: cuda
@@ -32,9 +32,9 @@ schedule_config:
   time_per_forward_pass: 2.5
   schedule_time_per_node: 10.0
 model_config:
-  model_name: "omnivore_swinB_imagenet21k"
+  model_name: "omnivore_swinL_imagenet21k"
   input_type: "video"
-  side_size: 256
+  side_size: 224
   crop_size: 224
   mean:
   - 0.485
