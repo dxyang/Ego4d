@@ -23,7 +23,14 @@ class Video:
     uid: str
     path: str
     frame_count: int
+    w: int
+    h: int
     is_stereo: bool = False
+
+    @property
+    def dim(self) -> int:
+        return (self.w * self.h) / (2 if self.is_stereo else 1)
+
 
 
 @dataclass
@@ -152,9 +159,16 @@ def _video_paths(config: InputOutputConfig, uids: List[str]) -> List[str]:
     return [_path_for(config, uid) for uid in uids]
 
 
-def _uid_to_num_frames(config: InputOutputConfig) -> Dict[str, int]:
+def _uid_to_info(config: InputOutputConfig) -> Dict[str, int]:
     manifest_df = pd.read_csv(f"{config.video_dir_path}/manifest.csv")
-    return {row.video_uid: row.canonical_num_frames for row in manifest_df.itertuples()}
+    return {
+        row.video_uid: {
+            "num_frames": row.canonical_num_frames,
+            "w": row.canonical_display_width,
+            "h": row.canonical_display_height,
+        }
+        for row in manifest_df.itertuples()
+    }
 
 
 def _uid_to_is_stereo(config: InputOutputConfig) -> Dict[str, bool]:
@@ -164,17 +178,19 @@ def _uid_to_is_stereo(config: InputOutputConfig) -> Dict[str, bool]:
 
 def _videos(config: InputOutputConfig, unfiltered: bool = False) -> List[Video]:
     uids = _uids(config) if not unfiltered else _unfiltered_uids(config)
-    uid_to_num_frames = _uid_to_num_frames(config)
+    uid_to_info = _uid_to_info(config)
     uids_to_is_stereo = _uid_to_is_stereo(config)
     return [
         Video(
             uid=uid,
             path=_path_for(config, uid),
-            frame_count=uid_to_num_frames[uid],
+            frame_count=uid_to_info[uid]["num_frames"],
+            w=uid_to_info[uid]["w"],
+            h=uid_to_info[uid]["h"],
             is_stereo=uids_to_is_stereo[uid],
         )
         for uid in uids
-        if uid in uid_to_num_frames
+        if uid in uid_to_info
     ]
 
 

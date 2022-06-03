@@ -74,12 +74,15 @@ class EncodedVideoCached:
         self.last_t = None
 
     def get_clip(self, t1, t2):
+        if self.last_t is None:
+            self.vid._container.seek(0)
         if self.last_t is not None and t1 < self.last_t:
             raise AssertionError("cannot seek backward")
 
         vstream = self.vid._container.streams.video[0]
         vs = vstream.start_time * vstream.time_base
         frames = get_frames(self.vid._container, t1 + vs, t2 + vs, self.frame_buffer, self.frame_buffer_size)
+        # frames = get_frames(self.vid, t1 + vs, t2 + vs, self.frame_buffer, self.frame_buffer_size)
         self.last_t = t1
         return thwc_to_cthw(torch.stack([
             torch.from_numpy(frame.to_rgb().to_ndarray())

@@ -6,6 +6,7 @@ import datetime
 import functools
 import math
 import os
+import av
 import sys
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
@@ -24,6 +25,20 @@ from ego4d.features.extract_features import num_fvs, perform_feature_extraction
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from tqdm import tqdm
+
+
+def video_info(path: str):
+    with av.open(path) as container:
+        return {
+            "w": container.streams.video[0].width,
+            "h": container.streams.video[0].height,
+            "num_frames": container.streams.video[0].frames,
+            "fps": container.streams.video[0].average_rate,
+        }
+
+def dim(x):
+    info = video_info(x.path)
+    return (info["w"] * info["h"] / (2 if x.is_stereo else 1))
 
 
 def greedy_create_batches(
