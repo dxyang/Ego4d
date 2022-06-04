@@ -6,8 +6,8 @@ io:
   ego4d_download_dir: /checkpoint/miguelmartin/ego4d/
   uid_list: null
   video_limit: -1
-  out_path: /checkpoint/miguelmartin/ego4d_track2_features/full_scale/omnivore_image
-  debug_path: /checkpoint/miguelmartin/ego4d_track2_features/full_scale/omnivore_image_debug
+  out_path: /checkpoint/miguelmartin/ego4d_track2_features/full_scale/omnivore_image_swinL
+  debug_path: /checkpoint/miguelmartin/ego4d_track2_features/full_scale/omnivore_image_swinL_debug
   debug_mode: false
 inference_config:
   device: cuda
@@ -22,15 +22,15 @@ inference_config:
 schedule_config:
   run_locally: false
   log_folder: slurm_log/%j
-  timeout_min: 2400
+  timeout_min: 3200
   constraint: volta
   slurm_partition: pixar
-  slurm_array_parallelism: 175
+  slurm_array_parallelism: 150
   gpus_per_node: 1
   cpus_per_task: 10
-  overhead: 1.5
-  time_per_forward_pass: 0.5
-  schedule_time_per_node: 10.0
+  overhead: 1.2
+  time_per_forward_pass: 0.29
+  schedule_time_per_node: 5.0
 model_config:
   model_name: "omnivore_swinL_imagenet21k"
   input_type: "image"

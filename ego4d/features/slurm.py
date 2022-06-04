@@ -27,20 +27,6 @@ from omegaconf import OmegaConf
 from tqdm import tqdm
 
 
-def video_info(path: str):
-    with av.open(path) as container:
-        return {
-            "w": container.streams.video[0].width,
-            "h": container.streams.video[0].height,
-            "num_frames": container.streams.video[0].frames,
-            "fps": container.streams.video[0].average_rate,
-        }
-
-def dim(x):
-    info = video_info(x.path)
-    return (info["w"] * info["h"] / (2 if x.is_stereo else 1))
-
-
 def greedy_create_batches(
     videos: List[Video], times: List[float], max_time_per_batch: int
 ) -> List[List[Tuple[Video, float]]]:
@@ -125,16 +111,21 @@ def validate_batches(timeout_minutes, times_per_batch, batched_vids):
 def batch_videos(
     videos: List[Video], config: FeatureExtractConfig
 ) -> List[List[Video]]:
+    def time_for(v):
+        base_time = config.schedule_config.time_per_forward_pass
+        base_time *= (v.dim / 2764800)
+        if v.is_stereo:
+            base_time *= 2
+        return base_time
+
     # estimate each time to extract per sub-clip
     num_forward_passes = [
         np.ceil(num_fvs(v, config.inference_config) / config.inference_config.batch_size)
         for v in videos
     ]
     times = [
-        config.schedule_config.overhead
-        * n
-        * config.schedule_config.time_per_forward_pass
-        for n in num_forward_passes
+        config.schedule_config.overhead * (n * time_for(v))
+        for v, n in zip(videos, num_forward_passes)
     ]
 
     # batch up these videos into config.timeout_min batches

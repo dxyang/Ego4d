@@ -13,7 +13,7 @@ inference_config:
   device: cuda
   batch_size: 1
   num_workers: 10
-  prefetch_factor: 3
+  prefetch_factor: 2
   fps: 30
   frame_window: 32
   stride: 16
@@ -22,14 +22,14 @@ inference_config:
 schedule_config:
   run_locally: false
   log_folder: slurm_log/%j
-  timeout_min: 3750
+  timeout_min: 3200
   constraint: volta
-  slurm_partition: pixar
-  slurm_array_parallelism: 256
+  slurm_partition: learnfair
+  slurm_array_parallelism: 250
   gpus_per_node: 1
   cpus_per_task: 10
-  overhead: 1.1
-  time_per_forward_pass: 2.5
+  overhead: 1.4
+  time_per_forward_pass: 1.75
   schedule_time_per_node: 10.0
 model_config:
   model_name: "omnivore_swinL_imagenet21k"
