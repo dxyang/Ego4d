@@ -49,7 +49,7 @@ def profile_extraction(config: FeatureExtractConfig):
     # batch_sizes = [1, 5, 10,   20, 30]
     # num_workers = [10, 10, 10,   10, 10]
     batch_sizes = [1]
-    num_workers = [10]
+    num_workers = [0]
     prefetch_factor = [2, 3, 4, 5]
     model = load_model(config)
 

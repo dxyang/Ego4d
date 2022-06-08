@@ -151,7 +151,7 @@ def _uids(config: InputOutputConfig) -> List[str]:
         uids = [uid for uid in uids if uid not in completed_uids]
 
     assert uids is not None, "`uids` is None"
-    assert len(uids) > 0, "`len(uids)` is 0"
+    assert len(uids) >= 0, "`len(uids)` is 0"
     return uids
 
 

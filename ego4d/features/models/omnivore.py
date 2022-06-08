@@ -9,6 +9,7 @@ from pytorchvideo.transforms import (
     ApplyTransformToKey,
     ShortSideScale,
 )
+import torchvision.transforms as T
 from torch.nn import Identity, Module
 from torchvision.transforms import Compose, Lambda
 from torchvision.transforms._transforms_video import CenterCropVideo, NormalizeVideo
@@ -66,16 +67,13 @@ def get_transform(inference_config: InferenceConfig, config: ModelConfig):
             NormalizeVideo(config.mean, config.std),
             ShortSideScale(size=config.side_size),
             CenterCropVideo(config.crop_size),
-            #Lambda(lambda x: [x]),  # to list
-            #SpatialCrop(crop_size=config.crop_size, num_crops=3),
-            #Lambda(lambda x: torch.stack(x)),
         ]
     else:
         assert inference_config.frame_window == 1
         transforms = [
+            T.Resize(size=config.side_size, antialias=True),
+            T.CenterCrop(config.crop_size),
             NormalizeVideo(config.mean, config.std),
-            ShortSideScale(size=config.side_size),
-            CenterCropVideo(config.crop_size),
         ]
 
     return ApplyTransformToKey(
